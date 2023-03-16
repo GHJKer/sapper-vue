@@ -47,7 +47,9 @@ const dangerLevel = computed(() => {
     ? "#df2424"
     : bombs.value === 2
     ? "#036e03"
-    : "#4848ff";
+    : bombs.value === 1
+    ? "#4848ff"
+    : "transparent";
 });
 
 function getRandomInt(max: number) {
@@ -73,7 +75,8 @@ const createMines = function (difficulty: number) {
   // Красим все клетки в один цвет с цифрами
   setTimeout(() => {
     for (let item of itemCellsRefs.value) {
-      item.style.color = "#bcbcbc";
+      item.style.color = "transparent";
+      item.style.backgroundColor = "#bcbcbc";
     }
   }, 0);
 
@@ -84,35 +87,35 @@ const rowElemArr = function (rowNum: number) {
   return Array.from(itemRefs.value[rowNum].children);
 };
 
-const filterClosest = function (row: Element[], index: number) {
+const filterClosest = function (row: Element[], index: number | string) {
   return row.filter(
     (item) =>
-      Number(item.id) >= Number(index) - 8 &&
-      Number(item.id) <= Number(index) + 8
+      Number(item.id) >= Number(index) - 2 &&
+      Number(item.id) <= Number(index) + 2
   );
 };
 
 // ряды на указанном удалении
 const getClosestRows = function (rowNum: number) {
-  const arr = itemRefs.value
-    .filter(
-      (item) =>
-        Number(item.id) >= Number(rowNum) - 8 &&
-        Number(item.id) <= Number(rowNum) + 8
-    )
-    .map((item) => rowElemArr(Number(item.id)));
+  const arr = filterClosest(itemRefs.value, rowNum).map((item) =>
+    rowElemArr(Number(item.id))
+  );
   return arr;
 };
 
 // элементы на указанном удалении влево/вправо + получаем содержимое клеток
 const getClosestItems = function (row: Element[], cellId: string) {
-  return row
-    .filter(
-      (item) =>
-        Number(item.id) >= Number(cellId) - 8 &&
-        Number(item.id) <= Number(cellId) + 8
-    )
-    .map((item) => item.innerHTML);
+  return filterClosest(row, cellId).map((item) => item.innerHTML);
+};
+
+const openField = function (elementsArr: Element[][], id: string) {
+  let closestElemets = elementsArr.map((item) => filterClosest(item, id));
+  for (let item of closestElemets) {
+    for (let i of item) {
+      // (i as HTMLElement).style.color = "#bcbcbc";
+      (i as HTMLElement).style.backgroundColor = "#8e8e8e";
+    }
+  }
 };
 
 const defuseBomb = function (rowNum: number, cell: number, bomb: number) {
@@ -141,6 +144,14 @@ const defuseBomb = function (rowNum: number, cell: number, bomb: number) {
   bombs.value === 0
     ? (currentCellElem.innerHTML = "N")
     : (currentCellElem.innerHTML = bombs.value.toString());
+
+  // Красим ближайшие элементы (открытие поля) + нельзя открывать нажатием на уже открытую клетку
+  if (
+    bombs.value === 0 &&
+    (currentCellElem as HTMLElement).style.backgroundColor ===
+      "rgb(188, 188, 188)"
+  )
+    openField(closestRows, currentCellElem.id);
 
   (currentCellElem as HTMLElement).style.color = `${dangerLevel.value}`;
   (currentCellElem as HTMLElement).style.backgroundColor = "#8e8e8e";
