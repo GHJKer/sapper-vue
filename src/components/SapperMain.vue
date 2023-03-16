@@ -16,7 +16,21 @@ const medium = 16;
 const hard = 32;
 let minesArr: Ref<rowObjI[]> = ref([]);
 let itemRefs: Ref<HTMLElement[]> = ref([]);
+let itemCellsRefs: Ref<HTMLElement[]> = ref([]);
+let tableRef = ref();
 let bombs = ref();
+
+function setRef(el) {
+  if (el) {
+    itemRefs.value.push(el);
+  }
+}
+
+function setCellsRef(el) {
+  if (el) {
+    itemCellsRefs.value.push(el);
+  }
+}
 
 const dangerLevel = computed(() => {
   return bombs.value >= 8
@@ -26,7 +40,7 @@ const dangerLevel = computed(() => {
     : bombs.value === 6
     ? "#37aaa1"
     : bombs.value === 5
-    ? "##821b1b"
+    ? "#821b1b"
     : bombs.value === 4
     ? "#0000b3"
     : bombs.value === 3
@@ -42,6 +56,7 @@ function getRandomInt(max: number) {
 
 const createMines = function (difficulty: number) {
   itemRefs.value = [];
+  itemCellsRefs.value = [];
 
   let arr: rowObjI[] = [];
 
@@ -55,6 +70,13 @@ const createMines = function (difficulty: number) {
     }
   }
 
+  // Красим все клетки в один цвет с цифрами
+  setTimeout(() => {
+    for (let item of itemCellsRefs.value) {
+      item.style.color = "#bcbcbc";
+    }
+  }, 0);
+
   minesArr.value = arr;
 };
 
@@ -62,6 +84,15 @@ const rowElemArr = function (rowNum: number) {
   return Array.from(itemRefs.value[rowNum].children);
 };
 
+const filterClosest = function (row: Element[], index: number) {
+  return row.filter(
+    (item) =>
+      Number(item.id) >= Number(index) - 8 &&
+      Number(item.id) <= Number(index) + 8
+  );
+};
+
+// ряды на указанном удалении
 const getClosestRows = function (rowNum: number) {
   const arr = itemRefs.value
     .filter(
@@ -73,7 +104,7 @@ const getClosestRows = function (rowNum: number) {
   return arr;
 };
 
-// элементы на удалении 2х клеток влево/вправо + получаем содержимое клеток
+// элементы на указанном удалении влево/вправо + получаем содержимое клеток
 const getClosestItems = function (row: Element[], cellId: string) {
   return row
     .filter(
@@ -110,6 +141,9 @@ const defuseBomb = function (rowNum: number, cell: number, bomb: number) {
   bombs.value === 0
     ? (currentCellElem.innerHTML = "N")
     : (currentCellElem.innerHTML = bombs.value.toString());
+
+  (currentCellElem as HTMLElement).style.color = `${dangerLevel.value}`;
+  (currentCellElem as HTMLElement).style.backgroundColor = "#8e8e8e";
 };
 
 onMounted(() => {
@@ -124,15 +158,16 @@ onMounted(() => {
       <button @click="createMines(medium)">medium</button>
       <button @click="createMines(hard)">hard</button>
     </div>
-    <table :class="$style['table']">
+    <table ref="tableRef" :class="$style['table']">
       <tbody>
         <tr
-          :ref="(el) => itemRefs.push(el)"
+          :ref="setRef"
           :id="item.id.toString()"
           v-for="item in minesArr"
           :key="item.id"
         >
           <td
+            :ref="setCellsRef"
             :id="i.id.toString()"
             v-for="i in item.innerArr"
             :key="i.id"
@@ -156,8 +191,7 @@ td {
   height: 20px;
   border: 1px solid black;
   text-align: center;
-  background-color: rgb(188, 188, 188);
-  color: black;
+  background-color: #bcbcbc;
 }
 
 th {
