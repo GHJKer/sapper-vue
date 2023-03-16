@@ -1,5 +1,6 @@
 <script setup lang="ts">
-import { ref, Ref, computed, onMounted } from "vue";
+import { ref, Ref, computed, watch } from "vue";
+import { timer, timeLeft, timerStop } from "../helpers/timer";
 
 interface rowObjI {
   id: number;
@@ -11,14 +12,33 @@ interface innerArrI {
   innerNum: number;
 }
 
-const easy = 8;
-const medium = 16;
-const hard = 32;
+const difficultyObj = {
+  easy: {
+    rows: 8,
+    cells: 8,
+    time: 10,
+  },
+  medium: {
+    rows: 16,
+    cells: 16,
+    time: 40,
+  },
+  hard: {
+    rows: 32,
+    cells: 16,
+    time: 100,
+  },
+};
+
+let showDifficulty = ref(true);
+let gameStarted = ref(false);
 let minesArr: Ref<rowObjI[]> = ref([]);
+let bombs = ref();
+let allBombs: Ref<number[]> = ref([]);
 let itemRefs: Ref<HTMLElement[]> = ref([]);
 let itemCellsRefs: Ref<HTMLElement[]> = ref([]);
 let tableRef = ref();
-let bombs = ref();
+let timerRef = ref();
 
 function setRef(el) {
   if (el) {
@@ -52,23 +72,38 @@ const dangerLevel = computed(() => {
     : "transparent";
 });
 
+function restart() {
+  gameStarted.value = false;
+  showDifficulty.value = true;
+  timerStop.value = true;
+  itemRefs.value = [];
+  itemCellsRefs.value = [];
+  allBombs.value = [];
+  minesArr.value = [];
+  tableRef.value.style.pointerEvents = "auto";
+}
+
 function getRandomInt(max: number) {
   return Math.floor(Math.random() * max);
 }
 
-const createMines = function (difficulty: number) {
+const createMines = function (rows: number, cells: number, time: number) {
   itemRefs.value = [];
   itemCellsRefs.value = [];
 
   let arr: rowObjI[] = [];
 
-  for (let i = 0; i < difficulty; i++) {
+  for (let i = 0; i < rows; i++) {
     arr.push({ id: i, innerArr: [] });
   }
 
-  for (let i = 0; i < difficulty; i++) {
-    for (let a = 0; a < difficulty; a++) {
-      arr[i].innerArr.push({ id: a, innerNum: getRandomInt(80) });
+  for (let i = 0; i < cells; i++) {
+    for (let a = 0; a < rows; a++) {
+      let randomNum = getRandomInt(80);
+      if (randomNum === 0) {
+        allBombs.value.push(randomNum);
+      }
+      arr[i].innerArr.push({ id: a, innerNum: randomNum });
     }
   }
 
@@ -81,6 +116,11 @@ const createMines = function (difficulty: number) {
   }, 0);
 
   minesArr.value = arr;
+  showDifficulty.value = false;
+  gameStarted.value = true;
+  timer(time);
+  timerStop.value = false;
+  tableRef.value.style.pointerEvents = "auto";
 };
 
 const rowElemArr = function (rowNum: number) {
@@ -118,12 +158,13 @@ const openField = function (elementsArr: Element[][], id: string) {
   }
 };
 
-const defuseBomb = function (rowNum: number, cell: number, bomb: number) {
-  if (bomb === 0) {
-    console.log("BOOM");
-    return;
-  }
+const youLost = function (elem: Element) {
+  (elem as HTMLElement).style.backgroundColor = "red";
+  timerStop.value = true;
+  tableRef.value.style.pointerEvents = "none";
+};
 
+const defuseBomb = function (rowNum: number, cell: number, bomb: number) {
   // Получаем ближайшие ряды
   const closestRows = getClosestRows(rowNum);
 
@@ -131,6 +172,12 @@ const defuseBomb = function (rowNum: number, cell: number, bomb: number) {
   const cellsArr = rowElemArr(rowNum);
 
   const currentCellElem = cellsArr[cell];
+
+  // Обработка проигрыша
+  if (bomb === 0) {
+    youLost(currentCellElem);
+    return;
+  }
 
   // Значения клеток в указанном радиусе
   const defuseArea = closestRows.map((item) =>
@@ -153,24 +200,68 @@ const defuseBomb = function (rowNum: number, cell: number, bomb: number) {
   )
     openField(closestRows, currentCellElem.id);
 
-  (currentCellElem as HTMLElement).style.color = `${dangerLevel.value}`;
-  (currentCellElem as HTMLElement).style.backgroundColor = "#8e8e8e";
+  // Меняем цвет цифры и бэкраунд
+  if (
+    (currentCellElem as HTMLElement).style.backgroundColor ===
+    "rgb(188, 188, 188)"
+  ) {
+    (currentCellElem as HTMLElement).style.color = `${dangerLevel.value}`;
+    (currentCellElem as HTMLElement).style.backgroundColor = "#8e8e8e";
+  }
 };
 
-onMounted(() => {
-  createMines(easy);
+watch(timeLeft, (newTime) => {
+  timerRef.value.innerHTML = newTime;
 });
 </script>
 
 <template>
   <div :class="$style['main-container']">
-    <div :class="$style['dicciculty-group']">
-      <button @click="createMines(easy)">easy</button>
-      <button @click="createMines(medium)">medium</button>
-      <button @click="createMines(hard)">hard</button>
+    <div v-if="gameStarted" :class="$style['control-group']">
+      <button @click="restart">Restart</button>
+      <div ref="timerRef" :class="$style['control-group_block']">00:00</div>
+      <div :class="$style['control-group_block']">Counter: 10</div>
+    </div>
+    <div v-if="showDifficulty" :class="$style['dicciculty-group']">
+      <h2>Выберите сложность</h2>
+      <div :class="$style['dicciculty-buttons']">
+        <button
+          @click="
+            createMines(
+              difficultyObj.easy.rows,
+              difficultyObj.easy.cells,
+              difficultyObj.easy.time
+            )
+          "
+        >
+          easy
+        </button>
+        <button
+          @click="
+            createMines(
+              difficultyObj.medium.rows,
+              difficultyObj.medium.cells,
+              difficultyObj.medium.time
+            )
+          "
+        >
+          medium
+        </button>
+        <button
+          @click="
+            createMines(
+              difficultyObj.hard.rows,
+              difficultyObj.hard.cells,
+              difficultyObj.hard.time
+            )
+          "
+        >
+          hard
+        </button>
+      </div>
     </div>
     <table ref="tableRef" :class="$style['table']">
-      <tbody>
+      <tbody v-if="gameStarted">
         <tr
           :ref="setRef"
           :id="item.id.toString()"
@@ -221,7 +312,30 @@ th {
   border: 1px solid #595454;
 }
 
+.control-group {
+  display: flex;
+  gap: 20px;
+  align-items: center;
+}
+
+.control-group_block {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 0 10px;
+  height: 35px;
+  border: 1px solid #595454;
+  border-radius: 10px;
+}
+
 .dicciculty-group {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  justify-content: center;
+}
+
+.dicciculty-buttons {
   display: flex;
   gap: 20px;
   justify-content: center;
