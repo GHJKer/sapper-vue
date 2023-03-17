@@ -2,13 +2,24 @@
 import { ref, Ref, computed, watch } from "vue";
 import SmileSvg from "./SmileSvg.vue";
 import DeadSvg from "./DeadSvg.vue";
+import WinSvg from "./WinSvg.vue";
 import { timer, timeLeft, timerStop } from "../helpers/timer";
+import router from "../router/index";
 
-let checkCell = function (cellNum: number) {
+let checkCell = function (cellNum: number, rowNum: number, cell: number) {
   console.log(cellNum);
   scores.value--;
-  if (cellNum === 0) scoresInFact.value--;
-  if (scoresInFact.value === 0) console.log("WIN");
+  // Получаем элемент и добавляем изобр флага
+  const cellsArr = rowElemArr(rowNum);
+  cellsArr[cell].classList.add("flag-style");
+  //-//
+  if (cellNum === 0) {
+    scoresInFact.value--;
+  }
+  if (scoresInFact.value === 0) {
+    youWin();
+    console.log("WIN");
+  }
 };
 
 interface rowObjI {
@@ -42,6 +53,7 @@ const difficultyObj = {
 let showDifficulty = ref(true);
 let gameStarted = ref(false);
 let gameOver = ref(false);
+let gameWin = ref(false);
 let minesArr: Ref<rowObjI[]> = ref([]);
 let bombs = ref();
 let allBombs = ref(0);
@@ -179,6 +191,10 @@ const youLost = function (elem: Element) {
   tableRef.value.style.pointerEvents = "none";
 };
 
+const youWin = function () {
+  gameWin.value = true;
+};
+
 const defuseBomb = function (rowNum: number, cell: number, bomb: number) {
   // Получаем ближайшие ряды
   const closestRows = getClosestRows(rowNum);
@@ -235,8 +251,9 @@ watch(timeLeft, (newTime) => {
     <div v-if="gameStarted" :class="$style['control-group']">
       <div :class="$style['control-group_block']">Counter: {{ scores }}</div>
       <div :class="$style['restart-imgs']" @click="restart">
-        <SmileSvg v-if="!gameOver" :class="$style['emoji']" />
-        <DeadSvg v-else :class="$style['emoji']" />
+        <SmileSvg v-if="!gameOver && !gameWin" :class="$style['emoji']" />
+        <DeadSvg v-if="gameOver" :class="$style['emoji']" />
+        <WinSvg v-if="gameWin" :class="$style['emoji']" />
       </div>
       <div ref="timerRef" :class="$style['control-group_block']">00:00</div>
     </div>
@@ -278,6 +295,9 @@ watch(timeLeft, (newTime) => {
         </button>
       </div>
     </div>
+    <button v-if="showDifficulty" @click="router.push('/LeaderBoard')">
+      Открыть таблицу лидеров
+    </button>
     <table ref="tableRef" :class="$style['table']">
       <tbody v-if="gameStarted">
         <tr
@@ -292,7 +312,7 @@ watch(timeLeft, (newTime) => {
             v-for="i in item.innerArr"
             :key="i.id"
             @click="defuseBomb(item.id, i.id, i.innerNum)"
-            @contextmenu.prevent="checkCell(i.innerNum)"
+            @contextmenu.prevent="checkCell(i.innerNum, item.id, i.id)"
           >
             {{ i.innerNum }}
           </td>
@@ -326,7 +346,7 @@ th {
   gap: 20px;
   padding: 30px;
   min-width: 400px;
-  min-height: 320px;
+  min-height: 220px;
   border-radius: 10px;
   border: 1px solid #595454;
 }
@@ -366,5 +386,13 @@ th {
   display: flex;
   gap: 20px;
   justify-content: center;
+}
+</style>
+<style>
+.flag-style {
+  background-image: url(/public/svg/Icon.svg);
+  background-position: center;
+  background-size: cover;
+  pointer-events: none;
 }
 </style>

@@ -1,9 +1,7 @@
-<script setup lang="ts">
-import SapperMain from "./components/SapperMain.vue";
-</script>
+<script setup lang="ts"></script>
 
 <template>
-  <SapperMain msg="Vite + Vue" />
+  <router-view></router-view>
 </template>
 
 <style scoped></style>
