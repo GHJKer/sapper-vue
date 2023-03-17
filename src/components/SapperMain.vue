@@ -4,6 +4,13 @@ import SmileSvg from "./SmileSvg.vue";
 import DeadSvg from "./DeadSvg.vue";
 import { timer, timeLeft, timerStop } from "../helpers/timer";
 
+let checkCell = function (cellNum: number) {
+  console.log(cellNum);
+  scores.value--;
+  if (cellNum === 0) scoresInFact.value--;
+  if (scoresInFact.value === 0) console.log("WIN");
+};
+
 interface rowObjI {
   id: number;
   innerArr: innerArrI[];
@@ -38,6 +45,8 @@ let gameOver = ref(false);
 let minesArr: Ref<rowObjI[]> = ref([]);
 let bombs = ref();
 let allBombs = ref(0);
+let scores = ref(0);
+let scoresInFact = ref(0);
 let itemRefs: Ref<HTMLElement[]> = ref([]);
 let itemCellsRefs: Ref<HTMLElement[]> = ref([]);
 let tableRef = ref();
@@ -82,6 +91,7 @@ function restart() {
   itemRefs.value = [];
   itemCellsRefs.value = [];
   allBombs.value = 0;
+  scores.value = 0;
   minesArr.value = [];
   tableRef.value.style.pointerEvents = "auto";
 }
@@ -116,6 +126,8 @@ const createMines = function (rows: number, cells: number, time: number) {
     }
   }, 0);
 
+  scores.value = allBombs.value;
+  scoresInFact.value = allBombs.value;
   minesArr.value = arr;
   showDifficulty.value = false;
   gameStarted.value = true;
@@ -221,7 +233,7 @@ watch(timeLeft, (newTime) => {
 <template>
   <div :class="$style['main-container']">
     <div v-if="gameStarted" :class="$style['control-group']">
-      <div :class="$style['control-group_block']">Counter: 10</div>
+      <div :class="$style['control-group_block']">Counter: {{ scores }}</div>
       <div :class="$style['restart-imgs']" @click="restart">
         <SmileSvg v-if="!gameOver" :class="$style['emoji']" />
         <DeadSvg v-else :class="$style['emoji']" />
@@ -280,6 +292,7 @@ watch(timeLeft, (newTime) => {
             v-for="i in item.innerArr"
             :key="i.id"
             @click="defuseBomb(item.id, i.id, i.innerNum)"
+            @contextmenu.prevent="checkCell(i.innerNum)"
           >
             {{ i.innerNum }}
           </td>
