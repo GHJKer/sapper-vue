@@ -14,7 +14,8 @@ export function timer(mins: number) {
 
     if (!seconds || timerStop.value) {
       clearInterval(interval);
-      console.log("no");
+      minute = 60;
+      console.log("no", seconds);
       return;
     } else {
       console.log("yes");

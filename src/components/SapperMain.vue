@@ -1,5 +1,7 @@
 <script setup lang="ts">
 import { ref, Ref, computed, watch } from "vue";
+import SmileSvg from "./SmileSvg.vue";
+import DeadSvg from "./DeadSvg.vue";
 import { timer, timeLeft, timerStop } from "../helpers/timer";
 
 interface rowObjI {
@@ -32,9 +34,10 @@ const difficultyObj = {
 
 let showDifficulty = ref(true);
 let gameStarted = ref(false);
+let gameOver = ref(false);
 let minesArr: Ref<rowObjI[]> = ref([]);
 let bombs = ref();
-let allBombs: Ref<number[]> = ref([]);
+let allBombs = ref(0);
 let itemRefs: Ref<HTMLElement[]> = ref([]);
 let itemCellsRefs: Ref<HTMLElement[]> = ref([]);
 let tableRef = ref();
@@ -78,7 +81,7 @@ function restart() {
   timerStop.value = true;
   itemRefs.value = [];
   itemCellsRefs.value = [];
-  allBombs.value = [];
+  allBombs.value = 0;
   minesArr.value = [];
   tableRef.value.style.pointerEvents = "auto";
 }
@@ -99,10 +102,8 @@ const createMines = function (rows: number, cells: number, time: number) {
 
   for (let i = 0; i < cells; i++) {
     for (let a = 0; a < rows; a++) {
-      let randomNum = getRandomInt(80);
-      if (randomNum === 0) {
-        allBombs.value.push(randomNum);
-      }
+      let randomNum = getRandomInt(15);
+      if (randomNum === 0) allBombs.value++;
       arr[i].innerArr.push({ id: a, innerNum: randomNum });
     }
   }
@@ -120,6 +121,7 @@ const createMines = function (rows: number, cells: number, time: number) {
   gameStarted.value = true;
   timer(time);
   timerStop.value = false;
+  gameOver.value = false;
   tableRef.value.style.pointerEvents = "auto";
 };
 
@@ -161,6 +163,7 @@ const openField = function (elementsArr: Element[][], id: string) {
 const youLost = function (elem: Element) {
   (elem as HTMLElement).style.backgroundColor = "red";
   timerStop.value = true;
+  gameOver.value = true;
   tableRef.value.style.pointerEvents = "none";
 };
 
@@ -218,9 +221,12 @@ watch(timeLeft, (newTime) => {
 <template>
   <div :class="$style['main-container']">
     <div v-if="gameStarted" :class="$style['control-group']">
-      <button @click="restart">Restart</button>
-      <div ref="timerRef" :class="$style['control-group_block']">00:00</div>
       <div :class="$style['control-group_block']">Counter: 10</div>
+      <div :class="$style['restart-imgs']" @click="restart">
+        <SmileSvg v-if="!gameOver" :class="$style['emoji']" />
+        <DeadSvg v-else :class="$style['emoji']" />
+      </div>
+      <div ref="timerRef" :class="$style['control-group_block']">00:00</div>
     </div>
     <div v-if="showDifficulty" :class="$style['dicciculty-group']">
       <h2>Выберите сложность</h2>
@@ -318,11 +324,19 @@ th {
   align-items: center;
 }
 
+.restart-imgs {
+  cursor: pointer;
+}
+
+.emoji {
+  width: 60px;
+}
+
 .control-group_block {
   display: flex;
   justify-content: center;
   align-items: center;
-  padding: 0 10px;
+  width: 100px;
   height: 35px;
   border: 1px solid #595454;
   border-radius: 10px;
