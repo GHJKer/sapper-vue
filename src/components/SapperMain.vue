@@ -6,22 +6,6 @@ import WinSvg from "./WinSvg.vue";
 import { timer, timeLeft, timerStop } from "../helpers/timer";
 import router from "../router/index";
 
-let checkCell = function (cellNum: number, rowNum: number, cell: number) {
-  console.log(cellNum);
-  scores.value--;
-  // Получаем элемент и добавляем изобр флага
-  const cellsArr = rowElemArr(rowNum);
-  cellsArr[cell].classList.add("flag-style");
-  //-//
-  if (cellNum === 0) {
-    scoresInFact.value--;
-  }
-  if (scoresInFact.value === 0) {
-    youWin();
-    console.log("WIN");
-  }
-};
-
 interface rowObjI {
   id: number;
   innerArr: innerArrI[];
@@ -30,6 +14,7 @@ interface rowObjI {
 interface innerArrI {
   id: number;
   innerNum: number;
+  state: boolean;
 }
 
 const difficultyObj = {
@@ -44,8 +29,8 @@ const difficultyObj = {
     time: 40,
   },
   hard: {
-    rows: 32,
-    cells: 16,
+    rows: 16,
+    cells: 32,
     time: 100,
   },
 };
@@ -61,6 +46,7 @@ let scores = ref(0);
 let scoresInFact = ref(0);
 let itemRefs: Ref<HTMLElement[]> = ref([]);
 let itemCellsRefs: Ref<HTMLElement[]> = ref([]);
+let counterRef = ref();
 let tableRef = ref();
 let timerRef = ref();
 
@@ -96,7 +82,42 @@ const dangerLevel = computed(() => {
     : "transparent";
 });
 
+let checkStatuses = function () {
+  const stateArray = [];
+  for (let item of minesArr.value) {
+    for (let i of item.innerArr) {
+      stateArray.push(i.state);
+    }
+  }
+
+  let closedCells = stateArray.filter((item) => item === false);
+
+  if (scoresInFact.value === 0 && closedCells.length === 0) {
+    youWin();
+    console.log("WIN");
+  }
+};
+
+let checkCell = function (cellNum: number, rowNum: number, cell: number) {
+  scores.value--;
+  counterRef.value.innerHTML = `${scores.value}`;
+
+  // Помечаем состояние клетки как "проверенное"
+  minesArr.value[rowNum].innerArr[cell].state = true;
+
+  // Получаем элемент и добавляем изобр флага
+  const cellsArr = rowElemArr(rowNum);
+  cellsArr[cell].classList.add("flag-style");
+  //-//
+  if (cellNum === 0) {
+    scoresInFact.value--;
+  }
+  checkStatuses();
+};
+
 function restart() {
+  gameOver.value = false;
+  gameWin.value = false;
   gameStarted.value = false;
   showDifficulty.value = true;
   timerStop.value = true;
@@ -122,18 +143,18 @@ const createMines = function (rows: number, cells: number, time: number) {
     arr.push({ id: i, innerArr: [] });
   }
 
-  for (let i = 0; i < cells; i++) {
+  for (let i = 0; i < rows; i++) {
     for (let a = 0; a < rows; a++) {
       let randomNum = getRandomInt(15);
       if (randomNum === 0) allBombs.value++;
-      arr[i].innerArr.push({ id: a, innerNum: randomNum });
+      arr[i].innerArr.push({ id: a, innerNum: randomNum, state: false });
     }
   }
 
   // Красим все клетки в один цвет с цифрами
   setTimeout(() => {
     for (let item of itemCellsRefs.value) {
-      item.style.color = "transparent";
+      item.style.color = "yellow";
       item.style.backgroundColor = "#bcbcbc";
     }
   }, 0);
@@ -147,6 +168,9 @@ const createMines = function (rows: number, cells: number, time: number) {
   timerStop.value = false;
   gameOver.value = false;
   tableRef.value.style.pointerEvents = "auto";
+  setTimeout(() => {
+    counterRef.value.innerHTML = `${scores.value}`;
+  }, 0);
 };
 
 const rowElemArr = function (rowNum: number) {
@@ -174,11 +198,36 @@ const getClosestItems = function (row: Element[], cellId: string) {
   return filterClosest(row, cellId).map((item) => item.innerHTML);
 };
 
-const openField = function (elementsArr: Element[][], id: string) {
+const openField = function (
+  elementsArr: Element[][],
+  id: string,
+  rowNum: number
+) {
   let closestElemets = elementsArr.map((item) => filterClosest(item, id));
+
+  // Меняем состояния нужных объектов
+  const rowsObj = minesArr.value.filter(
+    (item) => item.id >= rowNum - 2 && item.id <= rowNum + 2
+  );
+
+  let cellsStates = [];
+  for (let row of rowsObj) {
+    cellsStates.push(
+      row.innerArr.filter(
+        (item) => item.id >= Number(id) - 2 && item.id <= Number(id) + 2
+      )
+    );
+  }
+
+  for (let item of cellsStates) {
+    for (let i of item) {
+      i.state = true;
+    }
+  }
+  //--//
+
   for (let item of closestElemets) {
     for (let i of item) {
-      // (i as HTMLElement).style.color = "#bcbcbc";
       (i as HTMLElement).style.backgroundColor = "#8e8e8e";
     }
   }
@@ -192,6 +241,8 @@ const youLost = function (elem: Element) {
 };
 
 const youWin = function () {
+  timerStop.value = true;
+  tableRef.value.style.pointerEvents = "none";
   gameWin.value = true;
 };
 
@@ -209,6 +260,9 @@ const defuseBomb = function (rowNum: number, cell: number, bomb: number) {
     youLost(currentCellElem);
     return;
   }
+
+  // Помечаем состояние клетки как "проверенное"
+  minesArr.value[rowNum].innerArr[cell].state = true;
 
   // Значения клеток в указанном радиусе
   const defuseArea = closestRows.map((item) =>
@@ -229,7 +283,7 @@ const defuseBomb = function (rowNum: number, cell: number, bomb: number) {
     (currentCellElem as HTMLElement).style.backgroundColor ===
       "rgb(188, 188, 188)"
   )
-    openField(closestRows, currentCellElem.id);
+    openField(closestRows, currentCellElem.id, rowNum);
 
   // Меняем цвет цифры и бэкраунд
   if (
@@ -239,6 +293,8 @@ const defuseBomb = function (rowNum: number, cell: number, bomb: number) {
     (currentCellElem as HTMLElement).style.color = `${dangerLevel.value}`;
     (currentCellElem as HTMLElement).style.backgroundColor = "#8e8e8e";
   }
+
+  checkStatuses();
 };
 
 watch(timeLeft, (newTime) => {
@@ -249,7 +305,9 @@ watch(timeLeft, (newTime) => {
 <template>
   <div :class="$style['main-container']">
     <div v-if="gameStarted" :class="$style['control-group']">
-      <div :class="$style['control-group_block']">Counter: {{ scores }}</div>
+      <div :class="$style['control-group_block']">
+        Counter: <span ref="counterRef">0</span>
+      </div>
       <div :class="$style['restart-imgs']" @click="restart">
         <SmileSvg v-if="!gameOver && !gameWin" :class="$style['emoji']" />
         <DeadSvg v-if="gameOver" :class="$style['emoji']" />
@@ -390,7 +448,7 @@ th {
 </style>
 <style>
 .flag-style {
-  background-image: url(/public/svg/Icon.svg);
+  background-image: url(/svg/Icon.svg);
   background-position: center;
   background-size: cover;
   pointer-events: none;
