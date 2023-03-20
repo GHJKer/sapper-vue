@@ -1,9 +1,10 @@
 <script setup lang="ts">
 import { ref, Ref, computed, watch } from "vue";
+import WinModal from "./WinModal.vue";
 import SmileSvg from "./SmileSvg.vue";
 import DeadSvg from "./DeadSvg.vue";
 import WinSvg from "./WinSvg.vue";
-import { timer, timeLeft, timerStop } from "../helpers/timer";
+import { timer, timerObj } from "../helpers/timer";
 import router from "../router/index";
 
 interface rowObjI {
@@ -17,18 +18,27 @@ interface innerArrI {
   state: boolean;
 }
 
+interface SumUp {
+  difficulty: string;
+  time: string;
+  totalTime: number;
+}
+
 const difficultyObj = {
   easy: {
+    name: "easy",
     rows: 8,
     cells: 8,
     time: 10,
   },
   medium: {
+    name: "medium",
     rows: 16,
     cells: 16,
     time: 40,
   },
   hard: {
+    name: "hard",
     rows: 16,
     cells: 32,
     time: 100,
@@ -39,11 +49,18 @@ let showDifficulty = ref(true);
 let gameStarted = ref(false);
 let gameOver = ref(false);
 let gameWin = ref(false);
-let minesArr: Ref<rowObjI[]> = ref([]);
+let isModalOpen = ref(false);
+let currentDifficulty = ref();
+let sumUpObj: SumUp = {
+  difficulty: "",
+  time: "",
+  totalTime: 0,
+};
 let bombs = ref();
 let allBombs = ref(0);
 let scores = ref(0);
 let scoresInFact = ref(0);
+let minesArr: Ref<rowObjI[]> = ref([]);
 let itemRefs: Ref<HTMLElement[]> = ref([]);
 let itemCellsRefs: Ref<HTMLElement[]> = ref([]);
 let counterRef = ref();
@@ -100,7 +117,7 @@ let checkStatuses = function () {
 
 let checkCell = function (cellNum: number, rowNum: number, cell: number) {
   scores.value--;
-  counterRef.value.innerHTML = `${scores.value}`;
+  counterRef.value.innerHTML = ` ${scores.value}`;
 
   // Помечаем состояние клетки как "проверенное"
   minesArr.value[rowNum].innerArr[cell].state = true;
@@ -120,7 +137,7 @@ function restart() {
   gameWin.value = false;
   gameStarted.value = false;
   showDifficulty.value = true;
-  timerStop.value = true;
+  timerObj.value.timerStop = true;
   itemRefs.value = [];
   itemCellsRefs.value = [];
   allBombs.value = 0;
@@ -133,9 +150,15 @@ function getRandomInt(max: number) {
   return Math.floor(Math.random() * max);
 }
 
-const createMines = function (rows: number, cells: number, time: number) {
+const createMines = function (
+  difficultyName: string,
+  rows: number,
+  cells: number,
+  time: number
+) {
   itemRefs.value = [];
   itemCellsRefs.value = [];
+  currentDifficulty.value = difficultyName;
 
   let arr: rowObjI[] = [];
 
@@ -144,7 +167,7 @@ const createMines = function (rows: number, cells: number, time: number) {
   }
 
   for (let i = 0; i < rows; i++) {
-    for (let a = 0; a < rows; a++) {
+    for (let a = 0; a < cells; a++) {
       let randomNum = getRandomInt(15);
       if (randomNum === 0) allBombs.value++;
       arr[i].innerArr.push({ id: a, innerNum: randomNum, state: false });
@@ -165,11 +188,11 @@ const createMines = function (rows: number, cells: number, time: number) {
   showDifficulty.value = false;
   gameStarted.value = true;
   timer(time);
-  timerStop.value = false;
+  timerObj.value.timerStop = false;
   gameOver.value = false;
   tableRef.value.style.pointerEvents = "auto";
   setTimeout(() => {
-    counterRef.value.innerHTML = `${scores.value}`;
+    counterRef.value.innerHTML = ` ${scores.value}`;
   }, 0);
 };
 
@@ -235,13 +258,21 @@ const openField = function (
 
 const youLost = function (elem: Element) {
   (elem as HTMLElement).style.backgroundColor = "red";
-  timerStop.value = true;
+  timerObj.value.timerStop = true;
   gameOver.value = true;
   tableRef.value.style.pointerEvents = "none";
 };
 
 const youWin = function () {
-  timerStop.value = true;
+  isModalOpen.value = true;
+  sumUpObj = {
+    difficulty: currentDifficulty.value,
+    time: timerObj.value.timePassed,
+    totalTime: timerObj.value.totalTime,
+  };
+  console.log(sumUpObj);
+
+  timerObj.value.timerStop = true;
   tableRef.value.style.pointerEvents = "none";
   gameWin.value = true;
 };
@@ -297,16 +328,17 @@ const defuseBomb = function (rowNum: number, cell: number, bomb: number) {
   checkStatuses();
 };
 
-watch(timeLeft, (newTime) => {
-  timerRef.value.innerHTML = newTime;
+watch(timerObj.value, (newTime) => {
+  timerRef.value.innerHTML = newTime.timeLeft;
 });
 </script>
 
 <template>
   <div :class="$style['main-container']">
+    <WinModal :options="sumUpObj" v-if="isModalOpen" />
     <div v-if="gameStarted" :class="$style['control-group']">
       <div :class="$style['control-group_block']">
-        Counter: <span ref="counterRef">0</span>
+        <span>Counter: </span><span ref="counterRef"> 0</span>
       </div>
       <div :class="$style['restart-imgs']" @click="restart">
         <SmileSvg v-if="!gameOver && !gameWin" :class="$style['emoji']" />
@@ -321,6 +353,7 @@ watch(timeLeft, (newTime) => {
         <button
           @click="
             createMines(
+              difficultyObj.easy.name,
               difficultyObj.easy.rows,
               difficultyObj.easy.cells,
               difficultyObj.easy.time
@@ -332,6 +365,7 @@ watch(timeLeft, (newTime) => {
         <button
           @click="
             createMines(
+              difficultyObj.medium.name,
               difficultyObj.medium.rows,
               difficultyObj.medium.cells,
               difficultyObj.medium.time
@@ -343,6 +377,7 @@ watch(timeLeft, (newTime) => {
         <button
           @click="
             createMines(
+              difficultyObj.hard.name,
               difficultyObj.hard.rows,
               difficultyObj.hard.cells,
               difficultyObj.hard.time
@@ -427,6 +462,7 @@ th {
   display: flex;
   justify-content: center;
   align-items: center;
+  gap: 7px;
   width: 100px;
   height: 35px;
   border: 1px solid #595454;

@@ -6,7 +6,7 @@ import router from "../router/index";
     <button @click="router.push('/')">Назад в главное меню</button>
     <h3>Leader board</h3>
     <ul>
-      <li>1) time: 3.02 mines: 4 difficulty: easy</li>
+      <li>1) Name: Olga difficulty: medium time: 12.02</li>
     </ul>
   </div>
 </template>
