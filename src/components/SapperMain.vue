@@ -59,22 +59,9 @@ let minesArr: Ref<rowObjI[]> = ref([]);
 let itemRefs: Ref<HTMLElement[]> = ref([]);
 let itemCellsRefs: Ref<HTMLElement[]> = ref([]);
 
-// let itemRefsNew = ref([]);
 let skipUnwrap = { itemRefs };
 let skipUnwrapCells = { itemCellsRefs };
 let tableRef = ref();
-
-// function setRef(el) {
-//   if (el) {
-//     itemRefs.value.push(el);
-//   }
-// }
-
-// function setCellsRef(el) {
-//   if (el) {
-//     itemCellsRefs.value.push(el);
-//   }
-// }
 
 const dangerLevel = computed(() => {
   return bombs.value >= 8
@@ -104,7 +91,7 @@ function touchStartHandler(cellNum: number, rowNum: number, cell: number) {
       console.log("put a flag");
       checkCell(cellNum, rowNum, cell);
     }
-  }, 1000);
+  }, 700);
 }
 
 function touchEndHanlder() {
@@ -411,7 +398,7 @@ onMounted(() => {
     <button v-if="showDifficulty" @click="router.push('/LeaderBoard')">
       Открыть таблицу лидеров
     </button>
-    <table ref="tableRef" :class="$style['table']">
+    <table ref="tableRef" :class="$style['main-table']">
       <tbody v-if="gameStarted">
         <tr
           :ref="skipUnwrap.itemRefs"
@@ -420,13 +407,14 @@ onMounted(() => {
           :key="item.id"
         >
           <td
+            :class="$style['table-td']"
             :ref="skipUnwrapCells.itemCellsRefs"
             :id="i.id.toString()"
             v-for="i in item.innerArr"
             :key="i.id"
             @click="defuseBomb(item.id, i.id, i.innerNum)"
             @contextmenu.prevent="checkCell(i.innerNum, item.id, i.id)"
-            @touchstart="touchStartHandler(i.innerNum, item.id, i.id)"
+            @touchstart.prevent="touchStartHandler(i.innerNum, item.id, i.id)"
             @touchend="touchEndHanlder"
           >
             {{ i.innerNum }}
@@ -438,21 +426,17 @@ onMounted(() => {
 </template>
 
 <style module>
-table {
+.main-table {
   border-collapse: collapse;
 }
 
-td {
+.table-td {
   width: 24px;
   height: 20px;
   border: 1px solid black;
   text-align: center;
   background-color: #bcbcbc;
   cursor: pointer;
-}
-
-th {
-  font-weight: bold;
 }
 
 .main-container {

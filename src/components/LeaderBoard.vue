@@ -1,28 +1,40 @@
 <script lang="ts" setup>
+import { ref, Ref, onMounted } from "vue";
 import router from "../router/index";
 
-import { useStore } from "../store/useStore";
+import { LeaderResultsI } from "../types/general";
 
-const store = useStore();
-const leaders = store.recordsData;
+const leaders: Ref<LeaderResultsI[]> = ref([]);
+
+onMounted(() => {
+  leaders.value = JSON.parse(localStorage.getItem("storageKey") ?? "[]");
+});
 </script>
 <template>
   <div :class="$style['main-container']">
     <button @click="router.push('/')">Назад в главное меню</button>
     <h3>Leader board</h3>
-    <ul :class="$style['record-list']">
-      <li :class="$style['record']" v-for="item in leaders">
-        <span>
-          {{ item.name }}
-        </span>
-        <span>
-          {{ item.difficulty }}
-        </span>
-        <span>
-          {{ item.time }}
-        </span>
-      </li>
-    </ul>
+    <table>
+      <t-body :class="$style['main-table']">
+        <tr v-for="item in leaders">
+          <td :class="$style['table-td']">
+            <span>
+              {{ item.name }}
+            </span>
+          </td>
+          <td :class="$style['table-td']">
+            <span>
+              {{ item.difficulty }}
+            </span>
+          </td>
+          <td :class="$style['table-td']">
+            <span>
+              {{ item.name }}
+            </span>
+          </td>
+        </tr>
+      </t-body>
+    </table>
   </div>
 </template>
 <style module>
@@ -38,14 +50,11 @@ const leaders = store.recordsData;
   border: 1px solid #595454;
 }
 
-.record-list {
-  padding: 0;
-  margin: 0;
+.main-table {
+  text-align: left;
 }
 
-.record {
-  display: flex;
-  gap: 10px;
-  list-style: none;
+.table-td {
+  width: 70px;
 }
 </style>
