@@ -83,6 +83,11 @@ const dangerLevel = computed(() => {
     : "transparent";
 });
 
+// Отключаем выделение текста
+document.onselectionchange = function () {
+  window.getSelection()?.removeAllRanges();
+};
+
 function touchStartHandler(cellNum: number, rowNum: number, cell: number) {
   isPressed.value = true;
   timerSet.value = setTimeout(() => {
@@ -91,7 +96,7 @@ function touchStartHandler(cellNum: number, rowNum: number, cell: number) {
       console.log("put a flag");
       checkCell(cellNum, rowNum, cell);
     }
-  }, 700);
+  }, 600);
 }
 
 function touchEndHanlder() {
@@ -178,7 +183,7 @@ const createMines = function (
 
   for (let i = 0; i < rows; i++) {
     for (let a = 0; a < cells; a++) {
-      let randomNum = getRandomInt(40);
+      let randomNum = getRandomInt(15);
       if (randomNum === 0) allBombs.value++;
       arr[i].innerArr.push({ id: a, innerNum: randomNum, state: false });
     }
@@ -414,7 +419,8 @@ onMounted(() => {
             :key="i.id"
             @click="defuseBomb(item.id, i.id, i.innerNum)"
             @contextmenu.prevent="checkCell(i.innerNum, item.id, i.id)"
-            @touchstart.prevent="touchStartHandler(i.innerNum, item.id, i.id)"
+            @touch="defuseBomb(item.id, i.id, i.innerNum)"
+            @touchstart="touchStartHandler(i.innerNum, item.id, i.id)"
             @touchend="touchEndHanlder"
           >
             {{ i.innerNum }}
