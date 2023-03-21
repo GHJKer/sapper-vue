@@ -1,30 +1,41 @@
 <script lang="ts" setup>
-import { ref, Ref } from "vue";
+import { ref, Ref, onMounted } from "vue";
+import { useStore } from "../store/useStore";
 
-interface LeaderResultsI {
-  name?: string;
-  time: string;
-  difficulty: string;
-  totalTime: number;
-}
+import { LeaderResultsI } from "../types/general";
 
 interface Props {
   options: LeaderResultsI;
 }
+
 const props = defineProps<Props>();
 
-const LeaderResults: Ref<LeaderResultsI> = ref(({} = props.options));
+const store = useStore();
 
+const showInput = ref(true);
+const LeaderResults: Ref<LeaderResultsI> = ref(({} = props.options));
 const leaders: Ref<LeaderResultsI[]> = ref([]);
+
+const addResult = function () {
+  leaders.value.push(LeaderResults.value);
+  leaders.value.sort((a, b) => (a.totalTime > b.totalTime ? 1 : -1));
+  localStorage.setItem("storageKey", JSON.stringify(leaders.value));
+  showInput.value = false;
+  store.storeData(leaders.value);
+};
+
+onMounted(() => {
+  if (store.recordsData) leaders.value = store.recordsData;
+});
 </script>
 <template>
   <div :class="$style['main-container']">
     <span :class="$style['leader-text']"
       >Введите имя чтобы добавить себя в таблицу победителей:</span
     >
-    <div :class="$style['input-group']">
+    <div v-if="showInput" :class="$style['input-group']">
       <input :class="$style['leader-input']" v-model="LeaderResults.name" />
-      <button @click="leaders.push(LeaderResults)">Добавить</button>
+      <button @click="addResult">Добавить</button>
     </div>
     <ul :class="$style['record-list']">
       <li :class="$style['record']" v-for="item in leaders" :key="item.time">

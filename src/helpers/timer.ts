@@ -13,11 +13,6 @@ interface TimerObjI {
   timerStop: boolean;
 }
 
-// export let totalTime = ref(0);
-// export let timeLeft = ref();
-// export let timePassed = ref();
-// export let timerStop = ref(false);
-
 export let timerObj: Ref<TimerObjI> = ref({
   totalTime: 0,
   timeLeft: "",
@@ -38,6 +33,7 @@ export function timer(mins: number) {
       minute = 60;
       secondsPassed = 0;
       minutesPassed = 0;
+      timerObj.value.timeLeft = "00:00";
       console.log("no", seconds);
       return;
     } else {

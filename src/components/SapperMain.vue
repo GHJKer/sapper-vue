@@ -1,28 +1,18 @@
 <script setup lang="ts">
-import { ref, Ref, computed, watch } from "vue";
+import { ref, Ref, computed, onMounted } from "vue";
+import router from "../router/index";
 import WinModal from "./WinModal.vue";
+import Timer from "./Timer.vue";
+import Counter from "./Counter.vue";
 import SmileSvg from "./SmileSvg.vue";
 import DeadSvg from "./DeadSvg.vue";
 import WinSvg from "./WinSvg.vue";
 import { timer, timerObj } from "../helpers/timer";
-import router from "../router/index";
+import { useStore } from "../store/useStore";
 
-interface rowObjI {
-  id: number;
-  innerArr: innerArrI[];
-}
+import { rowObjI, SumUp, LeaderResultsI } from "../types/general";
 
-interface innerArrI {
-  id: number;
-  innerNum: number;
-  state: boolean;
-}
-
-interface SumUp {
-  difficulty: string;
-  time: string;
-  totalTime: number;
-}
+const store = useStore();
 
 const difficultyObj = {
   easy: {
@@ -58,14 +48,15 @@ let sumUpObj: SumUp = {
 };
 let bombs = ref();
 let allBombs = ref(0);
-let scores = ref(0);
+let scores = ref({
+  count: 0,
+});
 let scoresInFact = ref(0);
+const leaders: Ref<LeaderResultsI[]> = ref([]);
 let minesArr: Ref<rowObjI[]> = ref([]);
 let itemRefs: Ref<HTMLElement[]> = ref([]);
 let itemCellsRefs: Ref<HTMLElement[]> = ref([]);
-let counterRef = ref();
 let tableRef = ref();
-let timerRef = ref();
 
 function setRef(el) {
   if (el) {
@@ -116,8 +107,7 @@ let checkStatuses = function () {
 };
 
 let checkCell = function (cellNum: number, rowNum: number, cell: number) {
-  scores.value--;
-  counterRef.value.innerHTML = ` ${scores.value}`;
+  scores.value.count--;
 
   // Помечаем состояние клетки как "проверенное"
   minesArr.value[rowNum].innerArr[cell].state = true;
@@ -133,6 +123,7 @@ let checkCell = function (cellNum: number, rowNum: number, cell: number) {
 };
 
 function restart() {
+  isModalOpen.value = false;
   gameOver.value = false;
   gameWin.value = false;
   gameStarted.value = false;
@@ -141,7 +132,7 @@ function restart() {
   itemRefs.value = [];
   itemCellsRefs.value = [];
   allBombs.value = 0;
-  scores.value = 0;
+  scores.value.count = 0;
   minesArr.value = [];
   tableRef.value.style.pointerEvents = "auto";
 }
@@ -168,7 +159,7 @@ const createMines = function (
 
   for (let i = 0; i < rows; i++) {
     for (let a = 0; a < cells; a++) {
-      let randomNum = getRandomInt(15);
+      let randomNum = getRandomInt(30);
       if (randomNum === 0) allBombs.value++;
       arr[i].innerArr.push({ id: a, innerNum: randomNum, state: false });
     }
@@ -177,12 +168,12 @@ const createMines = function (
   // Красим все клетки в один цвет с цифрами
   setTimeout(() => {
     for (let item of itemCellsRefs.value) {
-      item.style.color = "yellow";
+      item.style.color = "transparent";
       item.style.backgroundColor = "#bcbcbc";
     }
   }, 0);
 
-  scores.value = allBombs.value;
+  scores.value.count = allBombs.value;
   scoresInFact.value = allBombs.value;
   minesArr.value = arr;
   showDifficulty.value = false;
@@ -191,9 +182,6 @@ const createMines = function (
   timerObj.value.timerStop = false;
   gameOver.value = false;
   tableRef.value.style.pointerEvents = "auto";
-  setTimeout(() => {
-    counterRef.value.innerHTML = ` ${scores.value}`;
-  }, 0);
 };
 
 const rowElemArr = function (rowNum: number) {
@@ -328,8 +316,9 @@ const defuseBomb = function (rowNum: number, cell: number, bomb: number) {
   checkStatuses();
 };
 
-watch(timerObj.value, (newTime) => {
-  timerRef.value.innerHTML = newTime.timeLeft;
+onMounted(() => {
+  leaders.value = JSON.parse(localStorage.getItem("storageKey") ?? "[]");
+  store.storeData(leaders.value);
 });
 </script>
 
@@ -337,15 +326,13 @@ watch(timerObj.value, (newTime) => {
   <div :class="$style['main-container']">
     <WinModal :options="sumUpObj" v-if="isModalOpen" />
     <div v-if="gameStarted" :class="$style['control-group']">
-      <div :class="$style['control-group_block']">
-        <span>Counter: </span><span ref="counterRef"> 0</span>
-      </div>
+      <Counter :options="scores" />
       <div :class="$style['restart-imgs']" @click="restart">
         <SmileSvg v-if="!gameOver && !gameWin" :class="$style['emoji']" />
         <DeadSvg v-if="gameOver" :class="$style['emoji']" />
         <WinSvg v-if="gameWin" :class="$style['emoji']" />
       </div>
-      <div ref="timerRef" :class="$style['control-group_block']">00:00</div>
+      <Timer />
     </div>
     <div v-if="showDifficulty" :class="$style['dicciculty-group']">
       <h2>Выберите сложность</h2>
