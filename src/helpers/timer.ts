@@ -1,17 +1,11 @@
 import { ref, Ref } from "vue";
+import { TimerObjI } from "../types/general";
 
 let seconds = 0;
 let secondsPassed = 0;
 let minutesPassed = 0;
 let interval: number;
 let minute = 60;
-
-interface TimerObjI {
-  totalTime: number;
-  timeLeft: string;
-  timePassed: string;
-  timerStop: boolean;
-}
 
 export let timerObj: Ref<TimerObjI> = ref({
   totalTime: 0,
@@ -22,6 +16,7 @@ export let timerObj: Ref<TimerObjI> = ref({
 
 export function timer(mins: number) {
   seconds = mins * 60 || 0;
+  timerObj.value.timeLeft = "00:00";
   interval = setInterval(function () {
     timerObj.value.totalTime++;
     secondsPassed++;
@@ -31,9 +26,9 @@ export function timer(mins: number) {
     if (!seconds || timerObj.value.timerStop) {
       clearInterval(interval);
       minute = 60;
+      timerObj.value.totalTime = 0;
       secondsPassed = 0;
       minutesPassed = 0;
-      timerObj.value.timeLeft = "00:00";
       console.log("no", seconds);
       return;
     } else {

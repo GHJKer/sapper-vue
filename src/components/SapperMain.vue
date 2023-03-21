@@ -114,6 +114,7 @@ let checkCell = function (cellNum: number, rowNum: number, cell: number) {
 
   // Получаем элемент и добавляем изобр флага
   const cellsArr = rowElemArr(rowNum);
+  cellsArr[cell].classList.remove("mine-style");
   cellsArr[cell].classList.add("flag-style");
   //-//
   if (cellNum === 0) {
@@ -141,6 +142,15 @@ function getRandomInt(max: number) {
   return Math.floor(Math.random() * max);
 }
 
+function godMode() {
+  for (let item of itemCellsRefs.value) {
+    if (Number(item.innerHTML) === 0) {
+      item.classList.remove("flag-style");
+      item.classList.add("mine-style");
+    }
+  }
+}
+
 const createMines = function (
   difficultyName: string,
   rows: number,
@@ -159,7 +169,7 @@ const createMines = function (
 
   for (let i = 0; i < rows; i++) {
     for (let a = 0; a < cells; a++) {
-      let randomNum = getRandomInt(30);
+      let randomNum = getRandomInt(40);
       if (randomNum === 0) allBombs.value++;
       arr[i].innerArr.push({ id: a, innerNum: randomNum, state: false });
     }
@@ -324,6 +334,7 @@ onMounted(() => {
 
 <template>
   <div :class="$style['main-container']">
+    <button v-if="gameStarted" @click="godMode">Show mines</button>
     <WinModal :options="sumUpObj" v-if="isModalOpen" />
     <div v-if="gameStarted" :class="$style['control-group']">
       <Counter :options="scores" />
@@ -413,6 +424,7 @@ td {
   border: 1px solid black;
   text-align: center;
   background-color: #bcbcbc;
+  cursor: pointer;
 }
 
 th {
@@ -471,9 +483,15 @@ th {
 </style>
 <style>
 .flag-style {
-  background-image: url(/svg/Icon.svg);
+  background-image: url(/svg/flag.svg);
   background-position: center;
   background-size: cover;
   pointer-events: none;
+}
+
+.mine-style {
+  background-image: url(/svg/mine.svg);
+  background-position: center;
+  background-size: cover;
 }
 </style>

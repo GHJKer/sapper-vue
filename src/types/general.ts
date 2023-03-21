@@ -4,6 +4,13 @@ interface innerArrI {
   state: boolean;
 }
 
+export interface TimerObjI {
+  totalTime: number;
+  timeLeft: string;
+  timePassed: string;
+  timerStop: boolean;
+}
+
 export interface rowObjI {
   id: number;
   innerArr: innerArrI[];
