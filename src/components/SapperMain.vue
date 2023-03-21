@@ -35,6 +35,8 @@ const difficultyObj = {
   },
 };
 
+let isPressed = ref(false);
+let timerSet = ref();
 let showDifficulty = ref(true);
 let gameStarted = ref(false);
 let gameOver = ref(false);
@@ -56,19 +58,23 @@ const leaders: Ref<LeaderResultsI[]> = ref([]);
 let minesArr: Ref<rowObjI[]> = ref([]);
 let itemRefs: Ref<HTMLElement[]> = ref([]);
 let itemCellsRefs: Ref<HTMLElement[]> = ref([]);
+
+// let itemRefsNew = ref([]);
+let skipUnwrap = { itemRefs };
+let skipUnwrapCells = { itemCellsRefs };
 let tableRef = ref();
 
-function setRef(el) {
-  if (el) {
-    itemRefs.value.push(el);
-  }
-}
+// function setRef(el) {
+//   if (el) {
+//     itemRefs.value.push(el);
+//   }
+// }
 
-function setCellsRef(el) {
-  if (el) {
-    itemCellsRefs.value.push(el);
-  }
-}
+// function setCellsRef(el) {
+//   if (el) {
+//     itemCellsRefs.value.push(el);
+//   }
+// }
 
 const dangerLevel = computed(() => {
   return bombs.value >= 8
@@ -89,6 +95,22 @@ const dangerLevel = computed(() => {
     ? "#4848ff"
     : "transparent";
 });
+
+function touchStartHandler(cellNum: number, rowNum: number, cell: number) {
+  isPressed.value = true;
+  timerSet.value = setTimeout(() => {
+    if (isPressed.value) {
+      isPressed.value = false;
+      console.log("put a flag");
+      checkCell(cellNum, rowNum, cell);
+    }
+  }, 1000);
+}
+
+function touchEndHanlder() {
+  isPressed.value = false;
+  clearTimeout(timerSet.value);
+}
 
 let checkStatuses = function () {
   const stateArray = [];
@@ -392,18 +414,20 @@ onMounted(() => {
     <table ref="tableRef" :class="$style['table']">
       <tbody v-if="gameStarted">
         <tr
-          :ref="setRef"
+          :ref="skipUnwrap.itemRefs"
           :id="item.id.toString()"
           v-for="item in minesArr"
           :key="item.id"
         >
           <td
-            :ref="setCellsRef"
+            :ref="skipUnwrapCells.itemCellsRefs"
             :id="i.id.toString()"
             v-for="i in item.innerArr"
             :key="i.id"
             @click="defuseBomb(item.id, i.id, i.innerNum)"
             @contextmenu.prevent="checkCell(i.innerNum, item.id, i.id)"
+            @touchstart="touchStartHandler(i.innerNum, item.id, i.id)"
+            @touchend="touchEndHanlder"
           >
             {{ i.innerNum }}
           </td>
