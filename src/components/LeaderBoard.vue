@@ -29,7 +29,7 @@ onMounted(() => {
           </td>
           <td :class="$style['table-td']">
             <span>
-              {{ item.name }}
+              {{ item.time }}
             </span>
           </td>
         </tr>

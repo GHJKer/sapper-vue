@@ -83,11 +83,6 @@ const dangerLevel = computed(() => {
     : "transparent";
 });
 
-// Отключаем выделение текста
-document.onselectionchange = function () {
-  window.getSelection()?.removeAllRanges();
-};
-
 function touchStartHandler(cellNum: number, rowNum: number, cell: number) {
   isPressed.value = true;
   timerSet.value = setTimeout(() => {
@@ -183,7 +178,7 @@ const createMines = function (
 
   for (let i = 0; i < rows; i++) {
     for (let a = 0; a < cells; a++) {
-      let randomNum = getRandomInt(15);
+      let randomNum = getRandomInt(40);
       if (randomNum === 0) allBombs.value++;
       arr[i].innerArr.push({ id: a, innerNum: randomNum, state: false });
     }
@@ -434,6 +429,7 @@ onMounted(() => {
 <style module>
 .main-table {
   border-collapse: collapse;
+  user-select: none;
 }
 
 .table-td {
