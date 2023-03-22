@@ -178,7 +178,7 @@ const createMines = function (
 
   for (let i = 0; i < rows; i++) {
     for (let a = 0; a < cells; a++) {
-      let randomNum = getRandomInt(40);
+      let randomNum = getRandomInt(15);
       if (randomNum === 0) allBombs.value++;
       arr[i].innerArr.push({ id: a, innerNum: randomNum, state: false });
     }
